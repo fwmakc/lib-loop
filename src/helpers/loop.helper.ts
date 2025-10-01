@@ -11,13 +11,17 @@ import { wait } from './wait.helper';
  * @returns {Promise<void>} A promise that resolves when loop is exited.
  */
 export async function loop(
-  callback: () => Promise<boolean> | boolean,
+  callback: (deltaTime: number) => Promise<boolean> | boolean,
   milliseconds = 0,
 ): Promise<void> {
   let infinite = true;
+  let lastTime: number = performance.now();
   // eslint-disable-next-line no-constant-condition
   while (infinite) {
-    infinite = await callback();
+    const currentTime: number = performance.now();
+    const deltaTime: number = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
+    infinite = await callback(deltaTime);
     if (infinite && milliseconds) {
       await wait(milliseconds);
     }
