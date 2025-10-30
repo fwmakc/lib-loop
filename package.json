@@ -1,11 +1,12 @@
 {
   "name": "lib-loop",
-  "version": "0.1.0",
+  "version": "0.0.5",
   "description": "Simple node.js library for work with async loops",
   "keywords": [
     "cycle",
     "iterable",
     "loop",
+    "gameloop",
     "repeat",
     "iterator",
     "while",

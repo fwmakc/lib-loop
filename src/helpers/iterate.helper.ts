@@ -16,12 +16,15 @@ export async function iterate(
   milliseconds = 0,
 ): Promise<void> {
   let iteration = 0;
+
   // eslint-disable-next-line no-constant-condition
   while (iteration < maxIterations) {
     await callback();
+
     if (milliseconds) {
       await wait(milliseconds);
     }
+
     iteration++;
   }
 }
