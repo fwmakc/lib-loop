@@ -1,6 +1,6 @@
 {
   "name": "lib-loop",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Simple node.js library for work with async loops",
   "keywords": [
     "cycle",
