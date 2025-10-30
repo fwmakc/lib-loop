@@ -9,15 +9,24 @@ import { wait } from './wait.helper';
  * @returns {Promise<void>} Promise that resolves when loop is exited.
  */
 export async function frameLoop(
-  callback: (deltaTime: number, tps: number) => Promise<boolean> | boolean,
+  callback: (
+    deltaTime: number,
+    tps: number,
+    fps: number,
+  ) => Promise<boolean> | boolean,
   milliseconds = 0,
-  startLoopMode = 0,
+  tpsCustom: number | null = null, // Новый параметр для жесткой установки TPS
+  context: any = null,
 ): Promise<void> {
   let infinite = true;
   let lastTime = performance.now();
   let tpsTime = lastTime;
   let tps = 0;
+  let fps = 0;
   let frameCount = 0;
+
+  const tpsInterval =
+    tpsCustom !== null ? 1000 / (tpsCustom > 0 ? tpsCustom : 1) : null;
 
   const loop = async () => {
     const currentTime: number = performance.now();
@@ -27,12 +36,13 @@ export async function frameLoop(
 
     if (currentTime - tpsTime >= 1000) {
       tps = frameCount;
+      fps = Math.round(1000 / deltaTime);
       frameCount = 0;
       tpsTime = currentTime;
     }
 
     try {
-      infinite = await callback(deltaTime, tps);
+      infinite = await callback.call(context, deltaTime, tps, fps);
     } catch (error) {
       console.error('An error occurred in loop:', error);
       infinite = false;
@@ -42,14 +52,19 @@ export async function frameLoop(
       await wait(milliseconds);
     }
 
+    if (tpsInterval) {
+      const elapsedTime = performance.now() - currentTime;
+      const remainingTime = tpsInterval - elapsedTime;
+
+      if (remainingTime > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+      }
+    }
+
     if (infinite) {
       requestAnimationFrame(loop);
     }
   };
 
-  if (!startLoopMode) {
-    await loop();
-  } else {
-    requestAnimationFrame(loop);
-  }
+  requestAnimationFrame(loop);
 }
