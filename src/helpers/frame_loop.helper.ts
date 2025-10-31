@@ -1,70 +1,50 @@
+import { frameRate } from './frame_rate.helper';
 import { wait } from './wait.helper';
 
 /**
  * Starts loop that calls specified callback with updated time and ticks per second.
+ *
  * @param {function} callback - Asynchronous function that returns boolean value.
- *                              Loop will continue executing as long as this function returns true.
- * @param {number} [milliseconds=0] - Amount of time to wait between each iteration of loop in milliseconds.
+ *                              Loop will executing while function returns true.
+ * @param {number} [milliseconds=0] - Amount of time to wait between each iteration.
  *                                    If set to 0, no delay will be applied.
+ * @param {any} [context=null] - Context `this` in which callback should be executed.
  * @returns {Promise<void>} Promise that resolves when loop is exited.
  */
 export async function frameLoop(
-  callback: (
-    deltaTime: number,
-    tps: number,
-    fps: number,
-  ) => Promise<boolean> | boolean,
+  callback: (deltaTime: number) => Promise<boolean> | boolean,
   milliseconds = 0,
-  tpsCustom: number | null = null, // Новый параметр для жесткой установки TPS
   context: any = null,
 ): Promise<void> {
-  let infinite = true;
-  let lastTime = performance.now();
-  let tpsTime = lastTime;
-  let tps = 0;
-  let fps = 0;
-  let frameCount = 0;
+  const frameRateMs = await frameRate();
+  return new Promise((resolve) => {
+    let infinite = true;
+    let lastTime = performance.now() - frameRateMs;
 
-  const tpsInterval =
-    tpsCustom !== null ? 1000 / (tpsCustom > 0 ? tpsCustom : 1) : null;
+    const loop = async () => {
+      const currentTime: number = performance.now();
+      const deltaTime: number = (currentTime - lastTime) / 1000;
 
-  const loop = async () => {
-    const currentTime: number = performance.now();
-    const deltaTime: number = (currentTime - lastTime) / 1000;
-    lastTime = currentTime;
-    frameCount += 1;
+      lastTime = currentTime;
 
-    if (currentTime - tpsTime >= 1000) {
-      tps = frameCount;
-      fps = Math.round(1000 / deltaTime);
-      frameCount = 0;
-      tpsTime = currentTime;
-    }
-
-    try {
-      infinite = await callback.call(context, deltaTime, tps, fps);
-    } catch (error) {
-      console.error('An error occurred in loop:', error);
-      infinite = false;
-    }
-
-    if (infinite && milliseconds) {
-      await wait(milliseconds);
-    }
-
-    if (tpsInterval) {
-      const elapsedTime = performance.now() - currentTime;
-      const remainingTime = tpsInterval - elapsedTime;
-
-      if (remainingTime > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingTime));
+      try {
+        infinite = await callback.call(context, deltaTime);
+      } catch (error) {
+        console.error('An error occurred in loop:', error);
+        infinite = false;
       }
-    }
 
-    if (infinite) {
-      requestAnimationFrame(loop);
-    }
-  };
+      if (infinite && milliseconds) {
+        await wait(milliseconds);
+      }
 
-  requestAnimationFrame(loop);
+      if (infinite) {
+        requestAnimationFrame(loop);
+      } else {
+        resolve();
+      }
+    };
+
+    loop();
+  });
 }
