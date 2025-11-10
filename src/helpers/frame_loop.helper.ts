@@ -18,6 +18,11 @@ export async function frameLoop(
     let lastTime = performance.now() - frameRateMs;
 
     const loop = async () => {
+      if (document.hidden) {
+        infinite = false;
+        return;
+      }
+
       const currentTime: number = performance.now();
       const deltaTime: number = (currentTime - lastTime) / 1000;
 
@@ -37,6 +42,21 @@ export async function frameLoop(
       }
     };
 
-    loop();
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        lastTime = performance.now() - frameRateMs;
+        requestAnimationFrame(loop);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    requestAnimationFrame(loop);
+
+    const originalResolve = resolve;
+    resolve = () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      originalResolve();
+    };
   });
 }
