@@ -20,6 +20,7 @@ export async function frameLoop(
     const loop = async () => {
       if (document.hidden) {
         infinite = false;
+        lastTime = performance.now() - frameRateMs;
         return;
       }
 
@@ -43,7 +44,7 @@ export async function frameLoop(
     };
 
     const onVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && !infinite) {
         lastTime = performance.now() - frameRateMs;
         requestAnimationFrame(loop);
       }
